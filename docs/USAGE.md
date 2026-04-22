@@ -114,7 +114,7 @@ If multiple nodes match the same name, the node raises an error so the template 
 
 ## Date Tokens
 
-Inside `%date:...%`, these tokens are supported:
+Inside `%date:...%`, these ComfyUI-style tokens are supported:
 
 - `M`
 - `yyyy`
@@ -123,7 +123,6 @@ Inside `%date:...%`, these tokens are supported:
 - `MM`
 - `dd`
 - `h`
-- `HH`
 - `hh`
 - `m`
 - `mm`
@@ -136,7 +135,29 @@ Example:
 %date:yyyy-MM-dd_hh-mm%
 ```
 
-`h`, `hh`, and `HH` currently all render 24-hour values. `HH` remains supported as a compatibility alias.
+Unsupported text inside `%date:...%` remains unchanged.
+
+## Strftime Tokens
+
+Inside `%strftime:...%`, these directives are supported:
+
+- `%Y`
+- `%y`
+- `%m`
+- `%d`
+- `%H`
+- `%M`
+- `%S`
+- `%f`
+- `%%`
+
+Example:
+
+```text
+%strftime:%Y-%m-%d_%H-%M-%S%
+```
+
+This subset is intentionally small so behavior stays consistent across platforms.
 
 ## Collision Modes
 
@@ -155,6 +176,7 @@ The node description and field tooltips explain:
 - the difference between `ACTIVE_*`, `*_SHORT`, and `*_FOLDER`
 - how `model_folder`, `clip_folder`, and `subfolder` affect the final path
 - which placeholder styles are supported in `path_template`
+- the difference between `%date:...%` and `%strftime:...%`
 
 The package also includes markdown-based node docs so the ComfyUI `Info` tab can show fuller help than the default generated table.
 

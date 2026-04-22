@@ -28,7 +28,8 @@ DATE_TOKEN_RE = re.compile(r"%date:([^%]+)%")
 VARIABLE_TOKEN_RE = re.compile(r"%([A-Z0-9_]+)%")
 SEARCH_REPLACE_TOKEN_RE = re.compile(r"%([^%./\\]+)\.([^%./\\]+)%")
 UNKNOWN_TOKEN_RE = re.compile(r"%([^%]+)%")
-DATE_FORMAT_TOKEN_RE = re.compile(r"yyyy|yy|HH|hh|h|MM|M|dd|d|mm|m|ss|s")
+DATE_FORMAT_TOKEN_RE = re.compile(r"yyyy|yy|hh|h|MM|M|dd|d|mm|m|ss|s")
+STRFTIME_DIRECTIVE_RE = re.compile(r"%(?:[%YymdHMSf]|[A-Za-z])")
 IDENTIFIER_RE = re.compile(r"[^a-z0-9]+")
 
 UNET_DETECTION_EXACT_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
@@ -101,7 +102,6 @@ def _render_date_format(value: str, now: datetime) -> str:
         "M": str(now.month),
         "dd": f"{now.day:02d}",
         "d": str(now.day),
-        "HH": f"{now.hour:02d}",
         "hh": f"{now.hour:02d}",
         "h": str(now.hour),
         "mm": f"{now.minute:02d}",
@@ -110,6 +110,62 @@ def _render_date_format(value: str, now: datetime) -> str:
         "s": str(now.second),
     }
     return DATE_FORMAT_TOKEN_RE.sub(lambda match: token_values[match.group(0)], value)
+
+
+def _render_strftime_format(value: str, now: datetime) -> str:
+    allowed_directives = {"%Y", "%y", "%m", "%d", "%H", "%M", "%S", "%f", "%%"}
+    unsupported = sorted(
+        {
+            match.group(0)
+            for match in STRFTIME_DIRECTIVE_RE.finditer(value)
+            if match.group(0) not in allowed_directives
+        }
+    )
+    if unsupported:
+        raise ValueError(
+            "Unsupported strftime directives in path template: "
+            + ", ".join(unsupported)
+            + ". Supported directives are %Y, %y, %m, %d, %H, %M, %S, %f, and %%."
+        )
+
+    return now.strftime(value)
+
+
+def _replace_strftime_tokens(template: str, now: datetime) -> str:
+    marker = "%strftime:"
+    result = []
+    index = 0
+
+    while True:
+        start = template.find(marker, index)
+        if start == -1:
+            result.append(template[index:])
+            return "".join(result)
+
+        result.append(template[index:start])
+        cursor = start + len(marker)
+
+        while cursor < len(template):
+            if template[cursor] != "%":
+                cursor += 1
+                continue
+
+            if cursor + 1 >= len(template):
+                format_value = template[start + len(marker) : cursor]
+                result.append(_render_strftime_format(format_value, now))
+                index = cursor + 1
+                break
+
+            if template[cursor + 1] == "%" or template[cursor + 1].isalpha():
+                cursor += 2
+                continue
+
+            format_value = template[start + len(marker) : cursor]
+            result.append(_render_strftime_format(format_value, now))
+            index = cursor
+            break
+        else:
+            raise ValueError("Unterminated %strftime:...% placeholder in path template.")
 
 
 def _normalize_identifier(value: str) -> str:
@@ -383,6 +439,7 @@ def _render_path_template(template: str, variables: dict[str, str], now: datetim
         return _render_date_format(match.group(1), now)
 
     rendered = DATE_TOKEN_RE.sub(replace_date, template or "")
+    rendered = _replace_strftime_tokens(rendered, now)
     rendered = SEARCH_REPLACE_TOKEN_RE.sub(
         lambda match: _resolve_prompt_input_value(prompt, match.group(1), match.group(2)),
         rendered,
@@ -457,7 +514,8 @@ class SaveImageClean:
         "- Set path_template to build the full relative path\n"
         "- Supports custom variables such as %ACTIVE_UNET%, %ACTIVE_CLIP%, %MODEL_SHORT%, "
         "%CLIP_SHORT%, %MODEL_FOLDER%, %CLIP_FOLDER%, and %SUBFOLDER%\n"
-        "- Supports ComfyUI-style %node.widget% placeholders and %date:...% formatting\n\n"
+        "- Supports ComfyUI-style %node.widget%, ComfyUI-style %date:...%, and a small "
+        "%strftime:...% subset\n\n"
         "Variable meaning:\n"
         "- ACTIVE_* = auto-detected active loader names without known file extensions\n"
         "- *_SHORT = shortened versions of the detected active names\n"
@@ -562,7 +620,8 @@ class SaveImageClean:
                         "tooltip": (
                             "Full relative output path template. Supports %ACTIVE_UNET%, %ACTIVE_CLIP%, "
                             "%MODEL_SHORT%, %CLIP_SHORT%, %MODEL_FOLDER%, %CLIP_FOLDER%, %SUBFOLDER%, "
-                            "ComfyUI-style %node.widget%, and %date:yyyy-MM-dd_hh-mm%."
+                            "ComfyUI-style %node.widget%, %date:yyyy-MM-dd_hh-mm%, and a limited "
+                            "%strftime:%Y-%m-%d_%H-%M-%S% subset."
                         ),
                     },
                 ),

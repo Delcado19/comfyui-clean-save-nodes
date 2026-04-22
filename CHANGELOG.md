@@ -13,8 +13,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- `%date:...%` formatting now supports single-letter ComfyUI tokens such as `M`, `d`, `h`, `m`, and `s`
-- `HH` remains supported as a compatibility alias in addition to the ComfyUI-style `h` and `hh`
+- `%date:...%` formatting now stays aligned with the documented ComfyUI-style tokens, including single-letter tokens such as `M`, `d`, `h`, `m`, and `s`
+- `%strftime:...%` now supports a small documented subset: `%Y`, `%y`, `%m`, `%d`, `%H`, `%M`, `%S`, `%f`, and `%%`
 - active loader detection now recognizes more UNET, text encoder, and checkpoint loader naming patterns, including common custom-node variants such as diffusion-model loaders and GGUF-style loaders
 
 ## [0.1.0] - 2026-04-21

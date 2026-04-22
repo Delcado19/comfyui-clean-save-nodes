@@ -107,7 +107,7 @@ If a reference is ambiguous, the node raises an error instead of guessing.
 
 ## Date Formatting
 
-Inside `%date:...%`, the node supports these tokens:
+Inside `%date:...%`, the node supports these ComfyUI-style tokens:
 
 - `yyyy`
 - `yy`
@@ -117,7 +117,6 @@ Inside `%date:...%`, the node supports these tokens:
 - `d`
 - `hh`
 - `h`
-- `HH`
 - `mm`
 - `m`
 - `ss`
@@ -128,6 +127,30 @@ Example:
 ```text
 %date:yyyy-MM-dd_hh-mm%
 ```
+
+Unsupported text inside `%date:...%` remains unchanged.
+
+## Strftime Formatting
+
+Inside `%strftime:...%`, the node supports this Python `strftime` subset:
+
+- `%Y`
+- `%y`
+- `%m`
+- `%d`
+- `%H`
+- `%M`
+- `%S`
+- `%f`
+- `%%`
+
+Example:
+
+```text
+%strftime:%Y-%m-%d_%H-%M-%S%
+```
+
+This subset is intentionally small so behavior stays stable across platforms.
 
 ## Loader Detection
 

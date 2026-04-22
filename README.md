@@ -153,7 +153,7 @@ If a reference is ambiguous, the node raises an error instead of guessing.
 
 ### Supported Date Placeholders
 
-Template mode supports ComfyUI-style date segments:
+Template mode supports ComfyUI-style date segments via `%date:...%`:
 
 ```text
 %date:yyyy-MM-dd_hh-mm%
@@ -168,15 +168,37 @@ The following tokens are currently supported:
 - `MM`
 - `dd`
 - `h`
-- `HH`
 - `hh`
 - `m`
 - `mm`
 - `s`
 - `ss`
 
-Note:
-`h`, `hh`, and `HH` currently all produce 24-hour output. `HH` is kept as a compatibility alias for older versions of this node.
+Unsupported text inside `%date:...%` remains unchanged.
+
+### Supported Strftime Placeholders
+
+Template mode also supports a small Python `strftime` subset via `%strftime:...%`.
+
+Supported directives:
+
+- `%Y`
+- `%y`
+- `%m`
+- `%d`
+- `%H`
+- `%M`
+- `%S`
+- `%f`
+- `%%`
+
+Example:
+
+```text
+%strftime:%Y-%m-%d_%H-%M-%S%
+```
+
+`%strftime:...%` is intentionally limited to this subset so behavior stays stable across platforms, especially on Windows.
 
 ### Automatic Loader Detection
 
@@ -258,6 +280,7 @@ The in-node help covers:
 - legacy mode versus template mode
 - the purpose of the manual folder fields
 - example template usage
+- the difference between `%date:...%` and `%strftime:...%`
 
 The package also ships richer markdown-based node documentation for the ComfyUI `Info` tab.
 
