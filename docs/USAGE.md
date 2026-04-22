@@ -156,6 +156,8 @@ The node description and field tooltips explain:
 - how `model_folder`, `clip_folder`, and `subfolder` affect the final path
 - which placeholder styles are supported in `path_template`
 
+The package also includes markdown-based node docs so the ComfyUI `Info` tab can show fuller help than the default generated table.
+
 ## Loader Detection Notes
 
 Template mode traverses the upstream `prompt` graph from the current save node.

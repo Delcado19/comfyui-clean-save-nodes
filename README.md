@@ -259,6 +259,8 @@ The in-node help covers:
 - the purpose of the manual folder fields
 - example template usage
 
+The package also ships richer markdown-based node documentation for the ComfyUI `Info` tab.
+
 ---
 
 ## Strip Model Extension

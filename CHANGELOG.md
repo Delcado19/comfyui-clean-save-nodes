@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - ComfyUI-style `%node.widget%` placeholders in `path_template`
 - best-effort resolution against node title, custom `Node name for S&R`, class name, and node id
 - in-node descriptions and field tooltips for `Save Image Clean` and `Strip Model Extension`
+- markdown node documentation for the ComfyUI `Info` tab via `WEB_DIRECTORY/docs`
 
 ### Changed
 
