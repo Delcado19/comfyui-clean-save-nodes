@@ -18,7 +18,8 @@ Before opening a pull request, verify at least the following:
 2. `Save Image Clean` appears in the node list.
 3. Legacy mode still saves to `<subfolder>/<model_folder>/<clip_folder>/<timestamp>.png`.
 4. Template mode resolves placeholders such as `%ACTIVE_UNET%` and `%date:yyyy-MM-dd_hh-mm%`.
-5. Saved PNG files still contain prompt metadata.
+5. Template mode resolves `%node.widget%` placeholders such as `%KSampler.seed%` when the prompt contains the referenced widget values.
+6. Saved PNG files still contain prompt metadata.
 
 ## Coding Guidelines
 

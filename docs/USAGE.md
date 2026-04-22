@@ -41,6 +41,12 @@ Example result:
 jibMixZIT_v10/Huihui-Qwen3-4B-abliterated-v2.Q8_0/2026-04-21_14-37.png
 ```
 
+You can also combine custom variables with ComfyUI-style widget placeholders:
+
+```text
+%KSampler.seed%/%Empty Latent Image.width%x%Empty Latent Image.height%/%date:yyyy-MM-dd_hh-mm%
+```
+
 ## Template Variables
 
 - `%ACTIVE_UNET%`: detected UNET loader name without a known model file extension
@@ -51,17 +57,77 @@ jibMixZIT_v10/Huihui-Qwen3-4B-abliterated-v2.Q8_0/2026-04-21_14-37.png
 - `%CLIP_FOLDER%`: manual `clip_folder` fallback value without a known model file extension
 - `%SUBFOLDER%`: sanitized `subfolder` value
 
+In practice this means:
+
+- `ACTIVE_*`: auto-detected from the active workflow, then stripped of known model file extensions
+- `*_SHORT`: based on the detected active name, but further shortened for cleaner output names
+- `*_FOLDER`: taken from the manual node input fields, then stripped of known model file extensions
+
+Example values:
+
+- detected UNET loader name: `jibMixZIT_v10.safetensors`
+- detected CLIP loader name: `mradermacher - Huihui-Qwen3-4B-abliterated-v2.Q8_0.gguf`
+- manual `model_folder`: `manual-model`
+- manual `clip_folder`: `manual-clip.gguf`
+- `subfolder`: `portraits`
+
+Resolved variables:
+
+- `%ACTIVE_UNET%` -> `jibMixZIT_v10`
+- `%ACTIVE_CLIP%` -> `mradermacher - Huihui-Qwen3-4B-abliterated-v2.Q8_0`
+- `%MODEL_SHORT%` -> `jibMixZIT_v10`
+- `%CLIP_SHORT%` -> `Huihui-Qwen3-4B-abliterated-v2.Q8_0`
+- `%MODEL_FOLDER%` -> `manual-model`
+- `%CLIP_FOLDER%` -> `manual-clip`
+- `%SUBFOLDER%` -> `portraits`
+
+Example template using only the manual folder fields:
+
+```text
+%SUBFOLDER%/%MODEL_FOLDER%/%CLIP_FOLDER%/%date:yyyy-MM-dd_hh-mm%
+```
+
+Example result:
+
+```text
+portraits/manual-model/manual-clip/2026-04-22_15-30.png
+```
+
+## Search And Replace Placeholders
+
+Template mode also supports ComfyUI-style `%node.widget%` placeholders.
+
+Examples:
+
+- `%KSampler.seed%`
+- `%Empty Latent Image.width%`
+- `%Empty Latent Image.height%`
+
+Resolution is based on the execution prompt and can match:
+
+- node title when present
+- `Node name for S&R` when present
+- node class name
+- internal node id
+
+If multiple nodes match the same name, the node raises an error so the template stays explicit.
+
 ## Date Tokens
 
 Inside `%date:...%`, these tokens are supported:
 
+- `M`
 - `yyyy`
 - `yy`
+- `d`
 - `MM`
 - `dd`
+- `h`
 - `HH`
 - `hh`
+- `m`
 - `mm`
+- `s`
 - `ss`
 
 Example:
@@ -70,6 +136,8 @@ Example:
 %date:yyyy-MM-dd_hh-mm%
 ```
 
+`h`, `hh`, and `HH` currently all render 24-hour values. `HH` remains supported as a compatibility alias.
+
 ## Collision Modes
 
 - `increment`: appends `-2`, `-3`, and so on
@@ -77,14 +145,26 @@ Example:
 - `error`: raises an error if the path already exists
 - `seconds`: retries with a timestamp that includes seconds
 
+## In-Node Help
+
+`Save Image Clean` also exposes inline help in ComfyUI itself.
+
+The node description and field tooltips explain:
+
+- legacy mode versus template mode
+- the difference between `ACTIVE_*`, `*_SHORT`, and `*_FOLDER`
+- how `model_folder`, `clip_folder`, and `subfolder` affect the final path
+- which placeholder styles are supported in `path_template`
+
 ## Loader Detection Notes
 
 Template mode traverses the upstream `prompt` graph from the current save node.
 
 It currently favors:
 
-- classes containing `UnetLoader`
-- classes containing `ClipLoader`
-- classes containing `CheckpointLoader` as fallback
+- dedicated UNET loaders such as `UNETLoader`, `UnetLoaderGGUF`, and `Load Diffusion Model` style nodes
+- dedicated CLIP or text encoder loaders such as `CLIPLoader`, `DualCLIPLoader`, `TripleCLIPLoader`, `QuadrupleCLIPLoader`, and `TextEncoderLoader` style nodes
+- checkpoint loaders such as `CheckpointLoaderSimple`, `ImageOnlyCheckpointLoader`, and `unCLIPCheckpointLoader`
+- custom loader nodes that use similar class names and input names for diffusion model or text encoder selection
 
 If no loader name is found, the node falls back to the manual folder inputs.

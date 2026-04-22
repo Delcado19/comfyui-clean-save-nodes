@@ -26,6 +26,23 @@ WINDOWS_RESERVED_CHARS = '<>:"/\\|?*'
 PATH_SPLIT_RE = re.compile(r"[\\/]+")
 DATE_TOKEN_RE = re.compile(r"%date:([^%]+)%")
 VARIABLE_TOKEN_RE = re.compile(r"%([A-Z0-9_]+)%")
+SEARCH_REPLACE_TOKEN_RE = re.compile(r"%([^%./\\]+)\.([^%./\\]+)%")
+UNKNOWN_TOKEN_RE = re.compile(r"%([^%]+)%")
+DATE_FORMAT_TOKEN_RE = re.compile(r"yyyy|yy|HH|hh|h|MM|M|dd|d|mm|m|ss|s")
+IDENTIFIER_RE = re.compile(r"[^a-z0-9]+")
+
+UNET_DETECTION_EXACT_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
+UNET_DETECTION_PREFIX_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
+UNET_EXTRACTION_EXACT_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name", "model_name", "ckpt_name", "name")
+UNET_EXTRACTION_PREFIX_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
+
+CLIP_DETECTION_EXACT_KEYS = ("clip_name", "text_encoder_name", "text_encoder", "encoder_name")
+CLIP_DETECTION_PREFIX_KEYS = ("clip_name", "text_encoder_name", "encoder_name")
+CLIP_EXTRACTION_EXACT_KEYS = ("clip_name", "text_encoder_name", "text_encoder", "encoder_name", "model_name", "ckpt_name", "name")
+CLIP_EXTRACTION_PREFIX_KEYS = ("clip_name", "text_encoder_name", "encoder_name")
+
+CHECKPOINT_DETECTION_EXACT_KEYS = ("ckpt_name", "checkpoint_name", "model_name", "name")
+CHECKPOINT_DETECTION_PREFIX_KEYS = ("ckpt_name", "checkpoint_name")
 
 
 def _sanitize_path_component(value: str) -> str:
@@ -76,20 +93,27 @@ def _normalize_template_file_path(value: str) -> Path:
     return relative_path.with_suffix(".png")
 
 
-def _to_python_datetime_format(value: str) -> str:
-    converted = value
-    for source, target in (
-        ("yyyy", "%Y"),
-        ("yy", "%y"),
-        ("MM", "%m"),
-        ("dd", "%d"),
-        ("HH", "%H"),
-        ("hh", "%H"),
-        ("mm", "%M"),
-        ("ss", "%S"),
-    ):
-        converted = converted.replace(source, target)
-    return converted
+def _render_date_format(value: str, now: datetime) -> str:
+    token_values = {
+        "yyyy": f"{now.year:04d}",
+        "yy": f"{now.year % 100:02d}",
+        "MM": f"{now.month:02d}",
+        "M": str(now.month),
+        "dd": f"{now.day:02d}",
+        "d": str(now.day),
+        "HH": f"{now.hour:02d}",
+        "hh": f"{now.hour:02d}",
+        "h": str(now.hour),
+        "mm": f"{now.minute:02d}",
+        "m": str(now.minute),
+        "ss": f"{now.second:02d}",
+        "s": str(now.second),
+    }
+    return DATE_FORMAT_TOKEN_RE.sub(lambda match: token_values[match.group(0)], value)
+
+
+def _normalize_identifier(value: str) -> str:
+    return IDENTIFIER_RE.sub("", (value or "").strip().casefold())
 
 
 def _extract_connected_node_id(value: Any) -> str | None:
@@ -132,13 +156,17 @@ def _walk_prompt_upstream(prompt: Any, start_node_id: Any):
 def _extract_string_inputs(inputs: dict[str, Any], *, exact: tuple[str, ...], prefix: tuple[str, ...] = ()) -> list[str]:
     values = []
     seen = set()
+    exact_normalized = {_normalize_identifier(item) for item in exact}
+    prefix_normalized = tuple(_normalize_identifier(item) for item in prefix)
 
     for key, value in inputs.items():
         if not isinstance(value, str):
             continue
 
-        key_lower = key.lower()
-        if key_lower not in exact and not any(key_lower.startswith(item) for item in prefix):
+        key_normalized = _normalize_identifier(key)
+        if key_normalized not in exact_normalized and not any(
+            key_normalized.startswith(item) for item in prefix_normalized
+        ):
             continue
 
         cleaned = value.strip()
@@ -149,53 +177,216 @@ def _extract_string_inputs(inputs: dict[str, Any], *, exact: tuple[str, ...], pr
     return values
 
 
+def _matches_loader_inputs(inputs: dict[str, Any], *, exact: tuple[str, ...], prefix: tuple[str, ...] = ()) -> bool:
+    return bool(_extract_string_inputs(inputs, exact=exact, prefix=prefix))
+
+
+def _get_unet_loader_priority(class_type: str, inputs: dict[str, Any]) -> int | None:
+    class_name = _normalize_identifier(class_type)
+    if "unetloader" in class_name:
+        return 0
+    if "diffusionmodelloader" in class_name or "loaddiffusionmodel" in class_name:
+        return 1
+    if (
+        "loader" in class_name
+        and ("unet" in class_name or "diffusion" in class_name or "model" in class_name)
+        and _matches_loader_inputs(
+            inputs,
+            exact=UNET_DETECTION_EXACT_KEYS,
+            prefix=UNET_DETECTION_PREFIX_KEYS,
+        )
+    ):
+        return 2
+    return None
+
+
+def _get_clip_loader_priority(class_type: str, inputs: dict[str, Any]) -> int | None:
+    class_name = _normalize_identifier(class_type)
+    if "cliploader" in class_name:
+        return 0
+    if "textencoderloader" in class_name:
+        return 1
+    if (
+        "loader" in class_name
+        and ("clip" in class_name or "textencoder" in class_name or "encoder" in class_name)
+        and _matches_loader_inputs(
+            inputs,
+            exact=CLIP_DETECTION_EXACT_KEYS,
+            prefix=CLIP_DETECTION_PREFIX_KEYS,
+        )
+    ):
+        return 2
+    return None
+
+
+def _get_checkpoint_loader_priority(class_type: str, inputs: dict[str, Any]) -> int | None:
+    class_name = _normalize_identifier(class_type)
+    if "checkpointloader" in class_name or "ckptloader" in class_name:
+        return 10
+    if (
+        "loader" in class_name
+        and ("checkpoint" in class_name or "ckpt" in class_name)
+        and _matches_loader_inputs(
+            inputs,
+            exact=CHECKPOINT_DETECTION_EXACT_KEYS,
+            prefix=CHECKPOINT_DETECTION_PREFIX_KEYS,
+        )
+    ):
+        return 11
+    return None
+
+
+def _iter_prompt_nodes(prompt: Any):
+    if not isinstance(prompt, dict):
+        return
+
+    for node_id, node in prompt.items():
+        if isinstance(node, dict):
+            yield str(node_id), node
+
+
+def _collect_prompt_names(node_id: str, node: dict[str, Any]) -> list[str]:
+    candidates = []
+
+    def add_candidate(value: Any):
+        if isinstance(value, str):
+            cleaned = value.strip()
+            if cleaned and cleaned not in candidates:
+                candidates.append(cleaned)
+
+    add_candidate(node_id)
+    add_candidate(node.get("class_type"))
+    add_candidate(node.get("title"))
+    add_candidate(node.get("name"))
+
+    for container_key in ("_meta", "meta", "properties", "extra"):
+        container = node.get(container_key)
+        if not isinstance(container, dict):
+            continue
+
+        for key in (
+            "title",
+            "name",
+            "Node name for S&R",
+            "node name for s&r",
+            "node_name_for_s&r",
+            "search_and_replace",
+            "search_replace_name",
+            "s&r_name",
+            "sr_name",
+        ):
+            add_candidate(container.get(key))
+
+    return candidates
+
+
+def _coerce_template_value(value: Any) -> str | None:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (str, int, float)):
+        return str(value)
+    return None
+
+
+def _find_prompt_node(prompt: Any, node_name: str) -> tuple[str, dict[str, Any]]:
+    matches = []
+    target = node_name.strip().casefold()
+
+    for node_id, node in _iter_prompt_nodes(prompt):
+        candidate_names = _collect_prompt_names(node_id, node)
+        if any(name.casefold() == target for name in candidate_names):
+            matches.append((node_id, node))
+
+    if not matches:
+        raise ValueError(f"Unknown template node reference: {node_name}")
+
+    if len(matches) > 1:
+        joined = ", ".join(node_id for node_id, _ in matches[:5])
+        raise ValueError(
+            f"Ambiguous template node reference '{node_name}' matched multiple nodes: {joined}"
+        )
+
+    return matches[0]
+
+
+def _resolve_prompt_input_value(prompt: Any, node_name: str, widget_name: str) -> str:
+    node_id, node = _find_prompt_node(prompt, node_name)
+    inputs = node.get("inputs", {})
+    if not isinstance(inputs, dict):
+        raise ValueError(f"Node '{node_name}' does not expose widget inputs in the prompt.")
+
+    value = inputs.get(widget_name)
+    if value is None:
+        matching_keys = [
+            key
+            for key in inputs
+            if isinstance(key, str) and key.casefold() == widget_name.strip().casefold()
+        ]
+        if len(matching_keys) != 1:
+            raise ValueError(
+                f"Unknown widget reference '{widget_name}' on node '{node_name}' (node id {node_id})."
+            )
+        value = inputs[matching_keys[0]]
+
+    coerced = _coerce_template_value(value)
+    if coerced is not None:
+        return coerced
+
+    raise ValueError(
+        f"Template reference '{node_name}.{widget_name}' points to a linked or unsupported value."
+    )
+
+
 def _find_active_names(prompt: Any, unique_id: Any) -> dict[str, str]:
-    best_unet: tuple[int, int, str] | None = None
-    best_clip: tuple[int, int, str] | None = None
+    best_unet: tuple[int, int, int, str, str] | None = None
+    best_clip: tuple[int, int, int, str, str] | None = None
 
     for _, node, distance in _walk_prompt_upstream(prompt, unique_id):
         class_type = str(node.get("class_type", ""))
         inputs = node.get("inputs", {})
-        class_name = class_type.lower()
+        unet_priority = _get_unet_loader_priority(class_type, inputs)
+        clip_priority = _get_clip_loader_priority(class_type, inputs)
+        checkpoint_priority = _get_checkpoint_loader_priority(class_type, inputs)
 
-        is_unet_loader = "unetloader" in class_name
-        is_clip_loader = "cliploader" in class_name
-        is_checkpoint_loader = "checkpointloader" in class_name
-
-        if is_unet_loader or is_checkpoint_loader:
+        if unet_priority is not None or checkpoint_priority is not None:
             unet_values = _extract_string_inputs(
                 inputs,
-                exact=("unet_name", "model_name", "ckpt_name", "name"),
-                prefix=("unet_name",),
+                exact=UNET_EXTRACTION_EXACT_KEYS if unet_priority is not None else CHECKPOINT_DETECTION_EXACT_KEYS,
+                prefix=UNET_EXTRACTION_PREFIX_KEYS if unet_priority is not None else CHECKPOINT_DETECTION_PREFIX_KEYS,
             )
-            for value in unet_values:
-                candidate = (0 if is_unet_loader else 1, distance, value)
+            priority = unet_priority if unet_priority is not None else checkpoint_priority
+            for value_index, value in enumerate(unet_values):
+                candidate = (priority, distance, value_index, value.casefold(), value)
                 if best_unet is None or candidate < best_unet:
                     best_unet = candidate
 
-        if is_clip_loader or is_checkpoint_loader:
+        if clip_priority is not None or checkpoint_priority is not None:
             clip_values = _extract_string_inputs(
                 inputs,
-                exact=("clip_name", "model_name", "ckpt_name", "name"),
-                prefix=("clip_name",),
+                exact=CLIP_EXTRACTION_EXACT_KEYS if clip_priority is not None else CHECKPOINT_DETECTION_EXACT_KEYS,
+                prefix=CLIP_EXTRACTION_PREFIX_KEYS if clip_priority is not None else CHECKPOINT_DETECTION_PREFIX_KEYS,
             )
-            for value in clip_values:
-                candidate = (0 if is_clip_loader else 1, distance, value)
+            priority = clip_priority if clip_priority is not None else checkpoint_priority
+            for value_index, value in enumerate(clip_values):
+                candidate = (priority, distance, value_index, value.casefold(), value)
                 if best_clip is None or candidate < best_clip:
                     best_clip = candidate
 
     return {
-        "ACTIVE_UNET": best_unet[2] if best_unet else "",
-        "ACTIVE_CLIP": best_clip[2] if best_clip else "",
+        "ACTIVE_UNET": best_unet[4] if best_unet else "",
+        "ACTIVE_CLIP": best_clip[4] if best_clip else "",
     }
 
 
-def _render_path_template(template: str, variables: dict[str, str], now: datetime) -> str:
+def _render_path_template(template: str, variables: dict[str, str], now: datetime, prompt: Any) -> str:
     def replace_date(match: re.Match[str]) -> str:
-        python_format = _to_python_datetime_format(match.group(1))
-        return now.strftime(python_format)
+        return _render_date_format(match.group(1), now)
 
     rendered = DATE_TOKEN_RE.sub(replace_date, template or "")
+    rendered = SEARCH_REPLACE_TOKEN_RE.sub(
+        lambda match: _resolve_prompt_input_value(prompt, match.group(1), match.group(2)),
+        rendered,
+    )
 
     unknown_tokens = sorted(
         {
@@ -207,22 +398,45 @@ def _render_path_template(template: str, variables: dict[str, str], now: datetim
     if unknown_tokens:
         raise ValueError(f"Unknown path template variables: {', '.join(unknown_tokens)}")
 
-    return VARIABLE_TOKEN_RE.sub(lambda match: variables[match.group(1)], rendered)
+    rendered = VARIABLE_TOKEN_RE.sub(lambda match: variables[match.group(1)], rendered)
+
+    remaining_tokens = sorted({match.group(1) for match in UNKNOWN_TOKEN_RE.finditer(rendered)})
+    if remaining_tokens:
+        raise ValueError(f"Unknown path template placeholders: {', '.join(remaining_tokens)}")
+
+    return rendered
 
 
 class StripModelExtension:
     """Remove only the final known model extension from a loader/model name string."""
 
+    DESCRIPTION = (
+        "Removes one known model file extension from the end of a string. "
+        "Useful when you want a clean folder or filename from values such as "
+        "'model.safetensors' or 'model.gguf'."
+    )
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "text": ("STRING", {"multiline": False, "default": ""}),
+                "text": (
+                    "STRING",
+                    {
+                        "multiline": False,
+                        "default": "",
+                        "tooltip": (
+                            "Text to clean. Removes one known model file extension from the end, "
+                            "for example '.safetensors' or '.gguf'."
+                        ),
+                    },
+                ),
             }
         }
 
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("clean_text",)
+    OUTPUT_TOOLTIPS = ("The input text with one known model file extension removed.",)
     FUNCTION = "run"
     CATEGORY = "utils/filename"
 
@@ -234,6 +448,33 @@ class SaveImageClean:
     """Save images using either an explicit template or the legacy folder fields."""
 
     DEFAULT_TEMPLATE = "%ACTIVE_UNET%/%ACTIVE_CLIP%/%date:yyyy-MM-dd_hh-mm%"
+    DESCRIPTION = (
+        "Saves images with cleaner folder names and template-driven output paths.\n\n"
+        "Legacy mode:\n"
+        "- Leave path_template empty\n"
+        "- Output becomes <subfolder>/<model_folder>/<clip_folder>/<filename_datetime>.png\n\n"
+        "Template mode:\n"
+        "- Set path_template to build the full relative path\n"
+        "- Supports custom variables such as %ACTIVE_UNET%, %ACTIVE_CLIP%, %MODEL_SHORT%, "
+        "%CLIP_SHORT%, %MODEL_FOLDER%, %CLIP_FOLDER%, and %SUBFOLDER%\n"
+        "- Supports ComfyUI-style %node.widget% placeholders and %date:...% formatting\n\n"
+        "Variable meaning:\n"
+        "- ACTIVE_* = auto-detected active loader names without known file extensions\n"
+        "- *_SHORT = shortened versions of the detected active names\n"
+        "- *_FOLDER = manual field values without known file extensions\n\n"
+        "Example template:\n"
+        "%SUBFOLDER%/%MODEL_FOLDER%/%CLIP_FOLDER%/%date:yyyy-MM-dd_hh-mm%\n"
+        "Example result:\n"
+        "portraits/manual-model/manual-clip/2026-04-22_15-30.png"
+    )
+    SEARCH_ALIASES = [
+        "save image",
+        "save png",
+        "template save",
+        "clean save",
+        "filename template",
+        "output path",
+    ]
 
     def __init__(self):
         self.output_dir = folder_paths.get_output_directory()
@@ -246,21 +487,85 @@ class SaveImageClean:
         return {
             "required": {
                 "images": ("IMAGE",),
-                "model_folder": ("STRING", {"multiline": False, "default": "model"}),
-                "clip_folder": ("STRING", {"multiline": False, "default": "clip"}),
+                "model_folder": (
+                    "STRING",
+                    {
+                        "multiline": False,
+                        "default": "model",
+                        "tooltip": (
+                            "Manual model folder value. Used directly in legacy mode and as "
+                            "%MODEL_FOLDER% fallback in template mode."
+                        ),
+                    },
+                ),
+                "clip_folder": (
+                    "STRING",
+                    {
+                        "multiline": False,
+                        "default": "clip",
+                        "tooltip": (
+                            "Manual clip folder value. Used directly in legacy mode and as "
+                            "%CLIP_FOLDER% fallback in template mode."
+                        ),
+                    },
+                ),
                 "filename_datetime": (
                     "STRING",
-                    {"multiline": False, "default": "%Y-%m-%d_%H-%M"},
+                    {
+                        "multiline": False,
+                        "default": "%Y-%m-%d_%H-%M",
+                        "tooltip": (
+                            "Legacy-mode filename pattern using Python strftime, for example "
+                            "%Y-%m-%d_%H-%M."
+                        ),
+                    },
                 ),
                 "collision_mode": (
                     ["increment", "overwrite", "error", "seconds"],
-                    {"default": "increment"},
+                    {
+                        "default": "increment",
+                        "tooltip": (
+                            "How to handle an existing target file: increment appends -2, "
+                            "overwrite replaces, error stops, seconds retries with a seconds timestamp."
+                        ),
+                    },
                 ),
-                "subfolder": ("STRING", {"multiline": False, "default": ""}),
+                "subfolder": (
+                    "STRING",
+                    {
+                        "multiline": False,
+                        "default": "",
+                        "tooltip": (
+                            "Optional top-level folder. In legacy mode it becomes the first path segment. "
+                            "In template mode it is available as %SUBFOLDER%."
+                        ),
+                    },
+                ),
             },
             "optional": {
-                "base_output_folder": ("STRING", {"multiline": False, "default": ""}),
-                "path_template": ("STRING", {"multiline": False, "default": ""}),
+                "base_output_folder": (
+                    "STRING",
+                    {
+                        "multiline": False,
+                        "default": "",
+                        "tooltip": (
+                            "Optional absolute or custom base output folder. Leave empty to use "
+                            "ComfyUI's default output directory."
+                        ),
+                    },
+                ),
+                "path_template": (
+                    "STRING",
+                    {
+                        "multiline": False,
+                        "default": "",
+                        "tooltip": (
+                            "Full relative output path template. Supports %ACTIVE_UNET%, %ACTIVE_CLIP%, "
+                            "%MODEL_SHORT%, %CLIP_SHORT%, %MODEL_FOLDER%, %CLIP_FOLDER%, %SUBFOLDER%, "
+                            "ComfyUI-style %node.widget%, and %date:yyyy-MM-dd_hh-mm%."
+                        ),
+                    },
+                ),
             },
             "hidden": {
                 "prompt": "PROMPT",
@@ -341,7 +646,7 @@ class SaveImageClean:
                 clip_folder=clip_folder,
                 subfolder=subfolder,
             )
-            rendered = _render_path_template(path_template.strip(), variables, now)
+            rendered = _render_path_template(path_template.strip(), variables, now, prompt)
             relative_path = _normalize_template_file_path(rendered)
             return relative_path, rendered
 

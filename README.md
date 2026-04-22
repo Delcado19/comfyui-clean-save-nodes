@@ -10,6 +10,8 @@ The focus is on:
 - short, consistent filenames
 - automatic detection of active loader names
 - template-based output paths
+- ComfyUI-style `%node.widget%` placeholders
+- in-node descriptions and field tooltips
 - preservation of prompt and PNG metadata
 
 ---
@@ -72,6 +74,12 @@ Recommended starting value:
 %ACTIVE_UNET%/%ACTIVE_CLIP%/%date:yyyy-MM-dd_hh-mm%
 ```
 
+You can also mix in ComfyUI-style widget lookups:
+
+```text
+%KSampler.seed%/%Empty Latent Image.width%x%Empty Latent Image.height%/%date:yyyy-MM-dd_hh-mm%
+```
+
 Example result:
 
 ```text
@@ -88,6 +96,61 @@ jibMixZIT_v10/Huihui-Qwen3-4B-abliterated-v2.Q8_0/2026-04-21_14-37.png
 - `%CLIP_FOLDER%`
 - `%SUBFOLDER%`
 
+Variable meaning:
+
+- `ACTIVE_*`: automatically detected from the active workflow, with known model file extensions removed
+- `*_SHORT`: based on the detected active name, but further shortened for cleaner folder names
+- `*_FOLDER`: taken from the manual node input fields, with known model file extensions removed
+
+Example:
+
+- detected UNET loader name: `jibMixZIT_v10.safetensors`
+- detected CLIP loader name: `mradermacher - Huihui-Qwen3-4B-abliterated-v2.Q8_0.gguf`
+- manual `model_folder`: `manual-model`
+- manual `clip_folder`: `manual-clip.gguf`
+- `subfolder`: `portraits`
+
+Resulting values:
+
+- `%ACTIVE_UNET%` -> `jibMixZIT_v10`
+- `%ACTIVE_CLIP%` -> `mradermacher - Huihui-Qwen3-4B-abliterated-v2.Q8_0`
+- `%MODEL_SHORT%` -> `jibMixZIT_v10`
+- `%CLIP_SHORT%` -> `Huihui-Qwen3-4B-abliterated-v2.Q8_0`
+- `%MODEL_FOLDER%` -> `manual-model`
+- `%CLIP_FOLDER%` -> `manual-clip`
+- `%SUBFOLDER%` -> `portraits`
+
+Example using only the manual folder fields inside a template:
+
+```text
+%SUBFOLDER%/%MODEL_FOLDER%/%CLIP_FOLDER%/%date:yyyy-MM-dd_hh-mm%
+```
+
+Example result:
+
+```text
+portraits/manual-model/manual-clip/2026-04-22_15-30.png
+```
+
+### Supported Search And Replace Placeholders
+
+Template mode also supports ComfyUI-style `%node.widget%` placeholders.
+
+Examples:
+
+- `%KSampler.seed%`
+- `%Empty Latent Image.width%`
+- `%Empty Latent Image.height%`
+
+Resolution order is best-effort from the execution prompt data and can match:
+
+- the node title when it is present in prompt metadata
+- the custom `Node name for S&R` when it is present in prompt metadata
+- the node class name
+- the internal node id
+
+If a reference is ambiguous, the node raises an error instead of guessing.
+
 ### Supported Date Placeholders
 
 Template mode supports ComfyUI-style date segments:
@@ -98,17 +161,22 @@ Template mode supports ComfyUI-style date segments:
 
 The following tokens are currently supported:
 
+- `M`
 - `yyyy`
 - `yy`
+- `d`
 - `MM`
 - `dd`
+- `h`
 - `HH`
 - `hh`
+- `m`
 - `mm`
+- `s`
 - `ss`
 
 Note:
-`hh` and `HH` currently both produce 24-hour output.
+`h`, `hh`, and `HH` currently all produce 24-hour output. `HH` is kept as a compatibility alias for older versions of this node.
 
 ### Automatic Loader Detection
 
@@ -116,9 +184,10 @@ In template mode, the node attempts to detect the active name by traversing the 
 
 The detection currently prioritizes:
 
-- UNET loaders via classes whose names contain `UnetLoader`
-- CLIP loaders via classes whose names contain `ClipLoader`
-- checkpoint loaders as a fallback via classes whose names contain `CheckpointLoader`
+- dedicated UNET loaders such as `UNETLoader`, `UnetLoaderGGUF`, and `Load Diffusion Model` style nodes
+- dedicated CLIP or text encoder loaders such as `CLIPLoader`, `DualCLIPLoader`, `TripleCLIPLoader`, `QuadrupleCLIPLoader`, and `TextEncoderLoader` style nodes
+- checkpoint loaders such as `CheckpointLoaderSimple`, `ImageOnlyCheckpointLoader`, and `unCLIPCheckpointLoader`
+- custom loader nodes that follow comparable class naming and input naming patterns for diffusion models or text encoders
 
 If detection is not possible, the node falls back to the manually provided `model_folder` and `clip_folder` values.
 
@@ -179,6 +248,17 @@ After execution, the node returns a UI text value containing the resolved relati
 
 This is a runtime preview after template resolution, not a permanent live preview inside the node before execution.
 
+### In-Node Help
+
+`Save Image Clean` includes a node description and field tooltips directly in ComfyUI.
+
+The in-node help covers:
+
+- the difference between `ACTIVE_*`, `*_SHORT`, and `*_FOLDER`
+- legacy mode versus template mode
+- the purpose of the manual folder fields
+- example template usage
+
 ---
 
 ## Strip Model Extension
@@ -200,7 +280,8 @@ The current version covers the core feature set, but not everything from the ori
 Not yet implemented:
 
 - a true live preview directly inside the node before execution
-- broader detection for exotic or project-specific loader types
+- detection for highly exotic or heavily wrapped project-specific loader chains
+- full native ComfyUI filename formatting parity beyond `%date:...%` and `%node.widget%`
 - freely configurable string manipulation inside templates
 - more advanced shortening rules beyond the current prefix removal
 
