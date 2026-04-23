@@ -1,5 +1,7 @@
 # ComfyUI Clean Save Nodes
 
+![ComfyUI Clean Save Nodes social preview](assets/github-social-preview.png)
+
 ComfyUI Clean Save Nodes is a ComfyUI custom node pack for clean image saving, filename templates, model and text encoder naming, and PNG prompt metadata preservation.
 
 It is built for ComfyUI workflows that need readable output folders, predictable filenames, and easier organization across checkpoints, UNETs, CLIPs, GGUF text encoders, and template-driven save paths.
