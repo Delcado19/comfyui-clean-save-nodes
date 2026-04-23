@@ -4,6 +4,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+from PIL import Image
 
 import nodes
 
@@ -297,3 +298,65 @@ def test_save_images_verbose_detection_reports_custom_fallback(workspace_tmp_pat
     assert any("Text encoder detection: custom fallback -> my-clip" in line for line in result["ui"]["text"])
     assert any("Model variants:" in line for line in result["ui"]["text"])
     assert any("Text encoder variants:" in line for line in result["ui"]["text"])
+
+
+def test_save_images_increments_across_multiple_images_and_creates_files(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [
+        DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+        DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+    ]
+
+    result = saver.save_images(
+        images=images,
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        subfolder="batch-tests",
+        filename_datetime="sample-output",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    saved_images = result["ui"]["images"]
+    assert [item["filename"] for item in saved_images] == ["sample-output.png", "sample-output-2.png"]
+    assert all(item["subfolder"] == "batch-tests" for item in saved_images)
+
+    first_file = workspace_tmp_path / "batch-tests" / "sample-output.png"
+    second_file = workspace_tmp_path / "batch-tests" / "sample-output-2.png"
+    assert first_file.exists()
+    assert second_file.exists()
+
+
+def test_save_images_preserves_prompt_and_extra_png_metadata(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+    prompt = {"workflow": "metadata-check"}
+    extra_pnginfo = {
+        "seed": 1234,
+        "sampler": "euler",
+    }
+
+    result = saver.save_images(
+        images=[image],
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        subfolder="metadata-tests",
+        filename_datetime="meta-output",
+        prompt=prompt,
+        extra_pnginfo=extra_pnginfo,
+        unique_id="1",
+    )
+
+    saved_file = workspace_tmp_path / "metadata-tests" / result["ui"]["images"][0]["filename"]
+    with Image.open(saved_file) as png:
+        assert png.info["prompt"] == str(prompt)
+        assert png.info["seed"] == str(extra_pnginfo["seed"])
+        assert png.info["sampler"] == extra_pnginfo["sampler"]

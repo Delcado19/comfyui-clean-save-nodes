@@ -43,17 +43,17 @@ The following items are the core of the `v0.2.0` release:
 
 ## Known Gaps
 
-- The automated test suite is still small and currently focused on core helper behavior rather than full save-image execution.
-- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, and detection-info UI text, but not full end-to-end metadata verification across multiple image batches.
+- The automated test suite is still small, but it now covers core helper behavior, multi-image save execution, and PNG metadata preservation.
+- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, and basic save/metadata behavior, but not broader real-world prompt fixtures or format variations.
 - Frontend preview logic still uses sample names before first workflow execution, so preview correctness is illustrative until a real prompt runs.
 - Compatibility has been expanded for loader naming patterns, but this area is still the most likely place for future edge cases from third-party custom nodes.
 
 ## Next Priorities
 
 1. Expand regression coverage across representative prompt payloads from common ComfyUI ecosystems.
-2. Extend tests from helper coverage into PNG metadata behavior and multi-image save execution.
-3. Improve preview feedback so invalid template tokens and sample-value mode are more obvious in the node UI.
-4. Decide whether detection summary details should also surface in the in-node helper panel after execution, not only in the output text.
+2. Improve preview feedback so invalid template tokens and sample-value mode are more obvious in the node UI.
+3. Decide whether detection summary details should also surface in the in-node helper panel after execution, not only in the output text.
+4. Extend save tests toward additional collision modes and more than one loader-family prompt shape per workflow style.
 5. Keep `CHANGELOG.md` moving from the fresh `Unreleased` section after the `v0.2.0` tag.
 
 ## v0.2.0 Roadmap
