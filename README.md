@@ -1,21 +1,22 @@
 # ComfyUI Clean Save Nodes
 
-## Purpose
+ComfyUI Clean Save Nodes is a ComfyUI custom node pack for clean image saving, filename templates, model and text encoder naming, and PNG prompt metadata preservation.
 
-This package adds a cleaner save node for ComfyUI.
+It is built for ComfyUI workflows that need readable output folders, predictable filenames, and easier organization across checkpoints, UNETs, CLIPs, GGUF text encoders, and template-driven save paths.
 
-The focus is simple:
+## Why Use It
 
-- readable folder names
-- readable filenames
-- automatic model and text encoder detection
-- easy layout control
-- clear in-node help
+- cleaner `Save Image` behavior for ComfyUI outputs
+- readable folder names for models and text encoders
+- filename templates with `%date:...%`, `%strftime:...%`, and `%node.widget%`
+- automatic model and text encoder detection from the active workflow
+- preserved PNG prompt metadata for downstream browsing and archiving
+- in-node help plus markdown docs for the ComfyUI `Info` tab
 
 ## Included Nodes
 
-- `Save Image Clean`
-- `Strip Model Extension`
+- `Save Image Clean`: a ComfyUI save image node with cleaner naming, template-based layouts, and metadata-preserving PNG output
+- `Strip Model Extension`: a small utility node for removing `.safetensors`, `.gguf`, and other known model extensions
 
 ## Quick Start
 
@@ -29,6 +30,13 @@ Documentation:
 - [Installation](docs/INSTALLATION.md)
 - [Usage](docs/USAGE.md)
 - [Changelog](CHANGELOG.md)
+
+## Best For
+
+- ComfyUI users who want better output organization without rewriting their workflow
+- FLUX, SDXL, checkpoint, UNET, CLIP, and GGUF-heavy setups with messy loader names
+- workflows that save many test renders and need searchable folders and filenames
+- users who want template-based output paths while keeping prompt metadata inside PNG files
 
 ## Save Image Clean
 
