@@ -209,6 +209,10 @@ def _format_quant_display(value: str) -> str | None:
     if match:
         return f"[IQ{match.group(1)}-{match.group(2)}]"
 
+    zero_quant = re.fullmatch(r"Q(\d+)_0", normalized)
+    if zero_quant:
+        return f"[Q{zero_quant.group(1)}]"
+
     plain_quant = re.fullmatch(r"Q(\d+)", normalized)
     if plain_quant:
         return f"[Q{plain_quant.group(1)}]"
@@ -272,6 +276,11 @@ def _humanize_display_name_generic(value: str, quant_display: str = "") -> str:
     for part in base_parts:
         lowered = part.lower()
         if lowered in DISPLAY_DROP_WORDS:
+            continue
+
+        quant_part = _format_quant_display(part)
+        if quant_part:
+            tag_parts.append(quant_part)
             continue
 
         version = _normalize_version_token(part)

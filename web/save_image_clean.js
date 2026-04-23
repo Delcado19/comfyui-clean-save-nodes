@@ -196,11 +196,15 @@ function formatQuantDisplay(quant) {
     if (match) {
         return `[IQ${match[1]}-${match[2]}]`;
     }
+    const zeroQuant = normalized.match(/^Q(\d+)_0$/);
+    if (zeroQuant) {
+        return `[Q${zeroQuant[1]}]`;
+    }
     const plainQuant = normalized.match(/^Q(\d+)$/);
     if (plainQuant) {
         return `[Q${plainQuant[1]}]`;
     }
-    return `[${normalized}]`;
+    return "";
 }
 
 function joinDisplayParts(parts) {
@@ -252,6 +256,12 @@ function humanizeDisplayNameGeneric(value, quantDisplay = "") {
     const tagParts = [];
     for (const part of (baseValue || "unnamed").split(" ").filter(Boolean)) {
         if (DISPLAY_DROP_WORDS.has(part.toLowerCase())) {
+            continue;
+        }
+
+        const quantPart = formatQuantDisplay(part);
+        if (quantPart) {
+            tagParts.push(quantPart);
             continue;
         }
 
@@ -382,7 +392,7 @@ function humanizeDisplayName(value, kind = "generic") {
         const quantMatch = baseValue.match(QUANT_RE);
         if (quantMatch) {
             baseValue = quantMatch[1].replace(/[ ._-]+$/, "");
-            quantDisplay = formatQuantDisplay(quantMatch[2]);
+            quantDisplay = formatQuantDisplay(quantMatch[2]) || `[${quantMatch[2].toUpperCase()}]`;
         }
     }
 
