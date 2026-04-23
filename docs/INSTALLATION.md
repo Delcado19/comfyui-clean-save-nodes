@@ -7,7 +7,7 @@
 3. Clone this repository into that directory:
 
 ```bash
-git clone <repo-url> comfyui-clean-save-nodes
+git clone <repo-url> comfyui-save-image-organized
 ```
 
 4. Install the dependencies in the Python environment used by ComfyUI:
@@ -32,5 +32,5 @@ Then restart ComfyUI so changed nodes are reloaded.
 
 After installation, ComfyUI should expose these nodes:
 
-- `Save Image Clean`
+- `Save Image Organized`
 - `Strip Model Extension`

@@ -1,8 +1,8 @@
-# ComfyUI Clean Save Nodes
+# ComfyUI Save Image Organized
 
-![ComfyUI Clean Save Nodes social preview](assets/github-social-preview.png)
+![ComfyUI Save Image Organized social preview](assets/github-social-preview.png)
 
-ComfyUI Clean Save Nodes is a ComfyUI custom node pack for clean image saving, filename templates, model and text encoder naming, and PNG prompt metadata preservation.
+ComfyUI Save Image Organized is a ComfyUI custom node package for organized image saving, filename templates, model and text encoder naming, and PNG prompt metadata preservation.
 
 It is built for ComfyUI workflows that need readable output folders, predictable filenames, and easier organization across checkpoints, UNETs, CLIPs, GGUF text encoders, and template-driven save paths.
 
@@ -17,15 +17,15 @@ It is built for ComfyUI workflows that need readable output folders, predictable
 
 ## Included Nodes
 
-- `Save Image Clean`: a ComfyUI save image node with cleaner naming, template-based layouts, and metadata-preserving PNG output
+- `Save Image Organized`: a ComfyUI save image node with organized naming, template-based layouts, and metadata-preserving PNG output
 - `Strip Model Extension`: a small utility node for removing `.safetensors`, `.gguf`, and other known model extensions
 
 ## Quick Start
 
-1. Put the repository into `ComfyUI/custom_nodes/comfyui-clean-save-nodes`
+1. Put the repository into `ComfyUI/custom_nodes/comfyui-save-image-organized`
 2. Install the packages from `requirements.txt` in the Python environment used by ComfyUI
 3. Restart ComfyUI
-4. Add `Save Image Clean`
+4. Add `Save Image Organized`
 
 Documentation:
 
@@ -40,7 +40,7 @@ Documentation:
 - workflows that save many test renders and need searchable folders and filenames
 - users who want template-based output paths while keeping prompt metadata inside PNG files
 
-## Save Image Clean
+## Save Image Organized
 
 The node is built around four plain concepts:
 

@@ -1144,5 +1144,5 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "StripModelExtension": "Strip Model Extension",
-    "SaveImageClean": "Save Image Clean",
+    "SaveImageClean": "Save Image Organized",
 }

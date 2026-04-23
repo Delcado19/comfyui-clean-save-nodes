@@ -15,7 +15,7 @@ This repository contains a ComfyUI custom node package focused on predictable im
 Before opening a pull request, verify at least the following:
 
 1. ComfyUI starts without import errors.
-2. `Save Image Clean` appears in the node list.
+2. `Save Image Organized` appears in the node list.
 3. The default save layout resolves to `<top_folder>/<model_name>/<text_encoder_name>/<filename>.png` when `Save Layout` uses its default value.
 4. Custom save layouts resolve placeholders such as `%MODEL_NAME%`, `%TEXT_ENCODER_NAME%`, `%FILENAME%`, and `%date:yyyy-MM-dd_hh-mm%`.
 5. Custom save layouts resolve `%node.widget%` placeholders such as `%KSampler.seed%` when the prompt contains the referenced widget values.

@@ -1,8 +1,8 @@
 # Usage
 
-## Save Image Clean
+## Save Image Organized
 
-`Save Image Clean` now follows one simple structure:
+`Save Image Organized` now follows one simple structure:
 
 - `Top Folder`
 - `Model Name`

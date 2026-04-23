@@ -6,11 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- ComfyUI-style `%node.widget%` placeholders in `Save Image Clean`
+- ComfyUI-style `%node.widget%` placeholders in `Save Image Organized`
 - best-effort resolution against node title, custom `Node name for S&R`, class name, and node id
-- in-node descriptions and field tooltips for `Save Image Clean` and `Strip Model Extension`
+- in-node descriptions and field tooltips for `Save Image Organized` and `Strip Model Extension`
 - markdown node documentation for the ComfyUI `Info` tab via `WEB_DIRECTORY/docs`
-- in-node helper panel for `Save Image Clean`
+- in-node helper panel for `Save Image Organized`
 
 ### Changed
 
@@ -18,7 +18,8 @@ All notable changes to this project will be documented in this file.
 - `%strftime:...%` now supports the documented subset `%Y`, `%y`, `%m`, `%d`, `%H`, `%M`, `%S`, `%f`, and `%%`
 - active names now use the basename instead of the full model path, and friendly text encoder names keep compatibility markers such as `zimage`, move versions ahead of bracket tags, and render `Q8`-style quant suffixes as a final bracket tag such as `[Q8]`
 - active loader detection now recognizes more UNET, text encoder, and checkpoint loader naming patterns, including common custom-node variants such as diffusion-model loaders and GGUF-style loaders
-- `Save Image Clean` was rebuilt around a clean `Top Folder / Model Name / Text Encoder / Filename` model
+- the visible node name is now `Save Image Organized`
+- `Save Image Organized` is built around a clean `Top Folder / Model Name / Text Encoder / Filename` model
 - `Save Layout` now defaults to `%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%`
 - `Filename` is now a first-class field with the default `%date:yyyy-MM-dd_hh-mm-ss%`
 - the visible dropdown choices are now only `Friendly`, `Exact`, and `Custom`
@@ -34,7 +35,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - initial Git repository structure
-- `Save Image Clean` node with legacy and template-based save modes
+- `Save Image Organized` node with legacy and template-based save modes
 - automatic upstream detection for active UNET and CLIP loader names
 - template variables for model, clip and date-based output paths
 - `Strip Model Extension` utility node

@@ -691,7 +691,7 @@ function hookWidgetUpdates(node) {
 }
 
 app.registerExtension({
-    name: "comfyui-clean-save-nodes.save-image-clean-ux",
+    name: "comfyui-save-image-organized.save-image-organized-ux",
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (nodeData.name !== NODE_NAME) {
             return;

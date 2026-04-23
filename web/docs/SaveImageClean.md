@@ -1,4 +1,4 @@
-# Save Image Clean
+# Save Image Organized
 
 Save images into a folder structure that is easy to read at a glance.
 
@@ -6,7 +6,7 @@ Save images into a folder structure that is easy to read at a glance.
 
 The easiest setup is:
 
-1. Add `Save Image Clean`
+1. Add `Save Image Organized`
 2. Leave `Save Layout` unchanged
 3. Pick how `Model Name` and `Text Encoder Name` should look
 4. Leave `Filename` at its default unless you want a different timestamp
