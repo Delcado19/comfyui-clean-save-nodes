@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections import deque
 from datetime import datetime
+from difflib import get_close_matches
 from pathlib import Path
 from typing import Any
 
@@ -665,32 +666,71 @@ def _coerce_template_value(value: Any) -> str | None:
     return None
 
 
-def _find_prompt_node(prompt: Any, node_name: str) -> tuple[str, dict[str, Any]]:
+def _format_preview_list(values: list[str], *, limit: int = 5) -> str:
+    items = [value for value in values if value]
+    if not items:
+        return ""
+    preview = items[:limit]
+    suffix = " ..." if len(items) > limit else ""
+    return ", ".join(preview) + suffix
+
+
+def _format_match_label(node_id: str, node: dict[str, Any]) -> str:
+    names = _collect_prompt_names(node_id, node)
+    preferred = next((name for name in names if name != node_id), node_id)
+    return f"{preferred} (node id {node_id})"
+
+
+def _find_prompt_node(prompt: Any, node_name: str, placeholder: str | None = None) -> tuple[str, dict[str, Any]]:
     matches = []
     target = node_name.strip().casefold()
+    all_candidates: list[tuple[str, dict[str, Any], list[str]]] = []
 
     for node_id, node in _iter_prompt_nodes(prompt):
         candidate_names = _collect_prompt_names(node_id, node)
+        all_candidates.append((node_id, node, candidate_names))
         if any(name.casefold() == target for name in candidate_names):
             matches.append((node_id, node))
 
     if not matches:
-        raise ValueError(f"Unknown template node reference: {node_name}")
+        known_names = []
+        for node_id, node, candidate_names in all_candidates:
+            preferred = next((name for name in candidate_names if name != node_id), node_id)
+            label = f"{preferred} (node id {node_id})"
+            if label not in known_names:
+                known_names.append(label)
+
+        available = (
+            f" Known nodes include: {_format_preview_list(known_names)}."
+            if known_names
+            else ""
+        )
+        context = f" in placeholder '{placeholder}'" if placeholder else ""
+        raise ValueError(f"Unknown template node reference '{node_name}'{context}.{available}")
 
     if len(matches) > 1:
-        joined = ", ".join(node_id for node_id, _ in matches[:5])
+        joined = _format_preview_list([_format_match_label(node_id, node) for node_id, node in matches])
+        context = f" in placeholder '{placeholder}'" if placeholder else ""
         raise ValueError(
-            f"Ambiguous template node reference '{node_name}' matched multiple nodes: {joined}"
+            f"Ambiguous template node reference '{node_name}'{context}. "
+            f"Matched multiple nodes: {joined}. Use a unique title, Node name for S&R, or node id."
         )
 
     return matches[0]
 
 
-def _resolve_prompt_input_value(prompt: Any, node_name: str, widget_name: str) -> str:
-    node_id, node = _find_prompt_node(prompt, node_name)
+def _resolve_prompt_input_value(
+    prompt: Any,
+    node_name: str,
+    widget_name: str,
+    *,
+    placeholder: str | None = None,
+) -> str:
+    node_id, node = _find_prompt_node(prompt, node_name, placeholder=placeholder)
     inputs = node.get("inputs", {})
     if not isinstance(inputs, dict):
-        raise ValueError(f"Node '{node_name}' does not expose widget inputs in the prompt.")
+        context = f" for placeholder '{placeholder}'" if placeholder else ""
+        raise ValueError(f"Node '{node_name}' (node id {node_id}) does not expose widget inputs{context}.")
 
     value = inputs.get(widget_name)
     if value is None:
@@ -700,8 +740,17 @@ def _resolve_prompt_input_value(prompt: Any, node_name: str, widget_name: str) -
             if isinstance(key, str) and key.casefold() == widget_name.strip().casefold()
         ]
         if len(matching_keys) != 1:
+            available_widgets = [key for key in inputs if isinstance(key, str)]
+            suggestions = get_close_matches(widget_name, available_widgets, n=3, cutoff=0.6)
+            suggestion_text = f" Close matches: {', '.join(suggestions)}." if suggestions else ""
+            available_text = (
+                f" Available widget inputs: {_format_preview_list(sorted(available_widgets), limit=8)}."
+                if available_widgets
+                else ""
+            )
             raise ValueError(
                 f"Unknown widget reference '{widget_name}' on node '{node_name}' (node id {node_id})."
+                f"{suggestion_text}{available_text}"
             )
         value = inputs[matching_keys[0]]
 
@@ -710,7 +759,10 @@ def _resolve_prompt_input_value(prompt: Any, node_name: str, widget_name: str) -
         return coerced
 
     raise ValueError(
-        f"Template reference '{node_name}.{widget_name}' points to a linked or unsupported value."
+        f"Template reference '{node_name}.{widget_name}'"
+        f"{f' from placeholder {placeholder!r}' if placeholder else ''} "
+        "points to a linked or unsupported value. "
+        "Only string, int, float, and bool widget inputs can be used."
     )
 
 
@@ -762,7 +814,12 @@ def _render_path_template(template: str, variables: dict[str, str], now: datetim
     rendered = DATE_TOKEN_RE.sub(replace_date, template or "")
     rendered = _replace_strftime_tokens(rendered, now)
     rendered = SEARCH_REPLACE_TOKEN_RE.sub(
-        lambda match: _resolve_prompt_input_value(prompt, match.group(1), match.group(2)),
+        lambda match: _resolve_prompt_input_value(
+            prompt,
+            match.group(1),
+            match.group(2),
+            placeholder=match.group(0),
+        ),
         rendered,
     )
 
@@ -774,13 +831,30 @@ def _render_path_template(template: str, variables: dict[str, str], now: datetim
         }
     )
     if unknown_tokens:
-        raise ValueError(f"Unknown path template variables: {', '.join(unknown_tokens)}")
+        known_variables = sorted(variables)
+        details = []
+        for token in unknown_tokens:
+            suggestions = get_close_matches(token, known_variables, n=2, cutoff=0.6)
+            if suggestions:
+                details.append(f"{token} (did you mean {', '.join(suggestions)}?)")
+            else:
+                details.append(token)
+        raise ValueError(
+            "Unknown path template variables: "
+            + ", ".join(details)
+            + ". Known variables: "
+            + ", ".join(known_variables)
+        )
 
     rendered = VARIABLE_TOKEN_RE.sub(lambda match: variables[match.group(1)], rendered)
 
     remaining_tokens = sorted({match.group(1) for match in UNKNOWN_TOKEN_RE.finditer(rendered)})
     if remaining_tokens:
-        raise ValueError(f"Unknown path template placeholders: {', '.join(remaining_tokens)}")
+        raise ValueError(
+            "Unknown path template placeholders: "
+            + ", ".join(remaining_tokens)
+            + ". Supported forms are %VARIABLE%, %node.widget%, %date:...%, and %strftime:...%."
+        )
 
     return rendered
 

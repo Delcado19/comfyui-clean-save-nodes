@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- isolated `uv`-based `pytest` setup with initial regression coverage for naming, template rendering, loader detection, and collision handling
+
+### Changed
+
+- path template errors now report clearer guidance for unknown variables, unknown `%node.widget%` node references, ambiguous node matches, unknown widget names, and linked or unsupported widget values
+
 ## [0.2.0] - 2026-04-23
 
 ### Added

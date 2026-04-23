@@ -43,18 +43,18 @@ The following items are the core of the `v0.2.0` release:
 
 ## Known Gaps
 
-- No automated test suite is present yet.
-- Validation is mostly runtime validation inside the node; there is no dedicated regression harness for template parsing or loader detection.
+- The automated test suite is still small and currently focused on core helper behavior rather than full save-image execution.
+- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, and collision handling, but not full end-to-end image saves.
 - Frontend preview logic uses sample names before first workflow execution, so preview correctness is illustrative until a real prompt runs.
 - Compatibility has been expanded for loader naming patterns, but this area is still the most likely place for future edge cases from third-party custom nodes.
 
 ## Next Priorities
 
-1. Start post-`v0.2.0` work with tests for path template rendering, date token handling, collision modes, and friendly-name normalization.
-2. Add regression coverage for loader detection across representative prompt payloads from common ComfyUI ecosystems.
-3. Improve template error UX so invalid variables and `%node.widget%` references fail clearly.
-4. Add optional detection/debug visibility for model and text encoder resolution.
-5. Keep `CHANGELOG.md` moving from a fresh `Unreleased` section after the `v0.2.0` tag.
+1. Expand regression coverage across representative prompt payloads from common ComfyUI ecosystems.
+2. Add optional detection/debug visibility for model and text encoder resolution.
+3. Extend tests from helper coverage into save-image execution and PNG metadata behavior.
+4. Improve preview feedback so invalid template tokens and sample-value mode are more obvious in the node UI.
+5. Keep `CHANGELOG.md` moving from the fresh `Unreleased` section after the `v0.2.0` tag.
 
 ## v0.2.0 Roadmap
 

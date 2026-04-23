@@ -53,12 +53,74 @@ def test_render_path_template_resolves_variables_and_widget_placeholders():
 
 
 def test_render_path_template_rejects_unknown_variables():
-    with pytest.raises(ValueError, match="Unknown path template variables: UNKNOWN"):
+    with pytest.raises(ValueError, match=r"Unknown path template variables: MODLE_NAME \(did you mean MODEL_NAME\?\)"):
         nodes._render_path_template(
-            "%MODEL_NAME%/%UNKNOWN%",
+            "%MODLE_NAME%",
             {"MODEL_NAME": "model"},
             datetime(2026, 4, 22, 21, 22, 5),
             {},
+        )
+
+
+def test_render_path_template_reports_unknown_node_with_known_candidates():
+    with pytest.raises(ValueError, match=r"Unknown template node reference 'KSampler' in placeholder '%KSampler.seed%'"):
+        nodes._render_path_template(
+            "%KSampler.seed%",
+            {},
+            datetime(2026, 4, 22, 21, 22, 5),
+            {
+                "10": {
+                    "class_type": "SamplerCustom",
+                    "inputs": {
+                        "seed": 42,
+                    },
+                    "title": "Sampler Custom",
+                }
+            },
+        )
+
+
+def test_render_path_template_reports_ambiguous_node_matches():
+    prompt = {
+        "10": {
+            "class_type": "KSampler",
+            "inputs": {"seed": 42},
+            "title": "Shared Name",
+        },
+        "11": {
+            "class_type": "KSamplerAdvanced",
+            "inputs": {"seed": 99},
+            "title": "Shared Name",
+        },
+    }
+
+    with pytest.raises(ValueError, match=r"Ambiguous template node reference 'Shared Name'.*Use a unique title, Node name for S&R, or node id"):
+        nodes._render_path_template(
+            "%Shared Name.seed%",
+            {},
+            datetime(2026, 4, 22, 21, 22, 5),
+            prompt,
+        )
+
+
+def test_render_path_template_reports_unknown_widget_with_suggestions():
+    prompt = {
+        "10": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": 42,
+                "steps": 20,
+            },
+            "title": "KSampler",
+        }
+    }
+
+    with pytest.raises(ValueError, match=r"Unknown widget reference 'sead'.*Close matches: seed.*Available widget inputs: seed, steps"):
+        nodes._render_path_template(
+            "%KSampler.sead%",
+            {"MODEL_NAME": "model"},
+            datetime(2026, 4, 22, 21, 22, 5),
+            prompt,
         )
 
 
@@ -125,4 +187,24 @@ def test_resolve_target_path_errors_when_requested(workspace_tmp_path):
             output_root=workspace_tmp_path,
             relative_path=existing.relative_to(workspace_tmp_path),
             collision_mode="error",
+        )
+
+
+def test_render_path_template_rejects_linked_or_unsupported_widget_values():
+    prompt = {
+        "10": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": ["20", 0],
+            },
+            "title": "KSampler",
+        }
+    }
+
+    with pytest.raises(ValueError, match=r"Template reference 'KSampler.seed' from placeholder '%KSampler.seed%' points to a linked or unsupported value"):
+        nodes._render_path_template(
+            "%KSampler.seed%",
+            {},
+            datetime(2026, 4, 22, 21, 22, 5),
+            prompt,
         )
