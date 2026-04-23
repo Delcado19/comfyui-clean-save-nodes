@@ -131,8 +131,8 @@ function formatQuantDisplay(quant) {
         Q5_K_M: "[5K-M]",
         Q5_K_S: "[5K-S]",
         Q6_K: "[6K]",
-        Q8_0: "[q8]",
-        Q8: "[q8]",
+        Q8_0: "[Q8]",
+        Q8: "[Q8]",
         FP8_E4M3FN: "[FP8-E4M3FN]",
         FP8_E5M2: "[FP8-E5M2]",
         BF16: "[BF16]",
@@ -147,7 +147,7 @@ function formatQuantDisplay(quant) {
     }
     const plainQuant = normalized.match(/^Q(\d+)$/);
     if (plainQuant) {
-        return `[q${plainQuant[1]}]`;
+        return `[Q${plainQuant[1]}]`;
     }
     return `[${normalized}]`;
 }

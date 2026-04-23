@@ -142,8 +142,8 @@ def _format_quant_display(value: str) -> str | None:
         "Q5_K_M": "[5K-M]",
         "Q5_K_S": "[5K-S]",
         "Q6_K": "[6K]",
-        "Q8_0": "[q8]",
-        "Q8": "[q8]",
+        "Q8_0": "[Q8]",
+        "Q8": "[Q8]",
         "FP8_E4M3FN": "[FP8-E4M3FN]",
         "FP8_E5M2": "[FP8-E5M2]",
         "BF16": "[BF16]",
@@ -158,7 +158,7 @@ def _format_quant_display(value: str) -> str | None:
 
     plain_quant = re.fullmatch(r"Q(\d+)", normalized)
     if plain_quant:
-        return f"[q{plain_quant.group(1)}]"
+        return f"[Q{plain_quant.group(1)}]"
 
     return None
 
@@ -693,7 +693,7 @@ class SaveImageClean:
         "- Change Model Name, Text Encoder Name, or Filename only if you want different output\n"
         "- Clear Save Layout only if you want the built-in folder order instead of a custom layout\n\n"
         "Default result example:\n"
-        "portraits/flux 2 klein 9b [5K-M]/Lockout Qwen3 4b V2 [Her][q8]/2026-04-22_15-30-10.png\n\n"
+        "portraits/flux 2 klein 9b [5K-M]/Lockout Qwen3 4b V2 [Her][Q8]/2026-04-22_15-30-10.png\n\n"
         "Open the Info tab for copy-paste templates, variable explanations, and beginner examples."
     )
     SEARCH_ALIASES = [
