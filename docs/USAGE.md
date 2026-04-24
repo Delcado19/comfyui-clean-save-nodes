@@ -121,6 +121,10 @@ Options:
 
 This is useful when you want to confirm which workflow loader values were detected, whether custom fallback was used, and which final names were selected for saving.
 
+If the current save node only sees a postprocessing branch and no sampler or loader upstream, Detection Info will report that no workflow loader was found on that save branch. In that case the node uses the default placeholders unless you provide custom names.
+
+If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current behavior is `Primary only`: no combined multi-loader names are produced.
+
 ### Export Workflow Metadata
 
 Controls whether saved PNGs embed prompt and workflow data like the normal ComfyUI `Save Image`

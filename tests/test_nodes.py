@@ -418,6 +418,34 @@ def test_find_active_names_supports_widget_only_loader_values():
     }
 
 
+def test_find_active_names_returns_empty_for_postprocess_only_save_branch():
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "ImageScaleToTotalPixels",
+            "inputs": {
+                "image": ["3", 0],
+            },
+        },
+        "3": {
+            "class_type": "LoadImage",
+            "inputs": {},
+        },
+    }
+
+    active_names = nodes._find_active_names(prompt, "1")
+
+    assert active_names == {
+        "ACTIVE_UNET": "",
+        "ACTIVE_CLIP": "",
+    }
+
+
 def test_resolve_target_path_increments_existing_files(workspace_tmp_path):
     saver = nodes.SaveImageClean()
 
@@ -635,6 +663,53 @@ def test_save_images_verbose_detection_reports_custom_fallback(workspace_tmp_pat
     assert any("Text encoder detection: custom fallback -> my-clip" in line for line in result["ui"]["text"])
     assert any("Model variants:" in line for line in result["ui"]["text"])
     assert any("Text encoder variants:" in line for line in result["ui"]["text"])
+
+
+def test_save_images_verbose_detection_reports_missing_loader_on_current_branch(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "ImageScaleToTotalPixels",
+            "inputs": {
+                "image": ["3", 0],
+            },
+        },
+        "3": {
+            "class_type": "LoadImage",
+            "inputs": {},
+        },
+    }
+
+    result = saver.save_images(
+        images=[image],
+        path_template=nodes.SaveImageClean.DEFAULT_TEMPLATE,
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Verbose",
+        export_workflow_metadata=True,
+        prompt=prompt,
+        unique_id="1",
+    )
+
+    assert any(
+        "Model detection: no workflow loader found on this save branch, using default placeholder" in line
+        for line in result["ui"]["text"]
+    )
+    assert any(
+        "Text encoder detection: no workflow loader found on this save branch, using default placeholder" in line
+        for line in result["ui"]["text"]
+    )
+    assert any("Model output: Friendly -> model" in line for line in result["ui"]["text"])
+    assert any("Text encoder output: Friendly -> text encoder" in line for line in result["ui"]["text"])
 
 
 def test_save_images_increments_across_multiple_images_and_creates_files(workspace_tmp_path):

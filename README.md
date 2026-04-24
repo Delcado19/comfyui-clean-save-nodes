@@ -128,6 +128,10 @@ Options:
 
 Use it when you want to see which model and text encoder names were detected, whether custom fallback was used, and which visible output names were finally selected.
 
+If a save node sits on a postprocessing-only branch with no sampler or loader upstream, Detection Info will say that no workflow loader was found on that save branch. In that case the node falls back to the default placeholders unless you provide custom names.
+
+If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current design is `Primary only`: no combined multi-loader names are generated.
+
 ### Workflow Metadata
 
 `Export Workflow Metadata` controls whether saved PNGs embed prompt and workflow data like the

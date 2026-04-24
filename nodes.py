@@ -1407,7 +1407,7 @@ class SaveImageClean:
                 return f"{kind_label} detection: workflow loader -> {detected_value}"
             if detection_source == "custom_fallback":
                 return f"{kind_label} detection: custom fallback -> {manual_value}"
-            return f"{kind_label} detection: no workflow match, using default placeholder"
+            return f"{kind_label} detection: no workflow loader found on this save branch, using default placeholder"
 
         lines = [
             "Detection Summary",
