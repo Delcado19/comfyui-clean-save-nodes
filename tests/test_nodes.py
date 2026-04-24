@@ -383,6 +383,41 @@ def test_find_active_names_respects_comfyswitchnode_selected_branch():
     }
 
 
+def test_find_active_names_supports_widget_only_loader_values():
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["3", 0],
+                "clip": ["4", 0],
+            },
+        },
+        "3": {
+            "class_type": "UnetLoaderGGUF",
+            "inputs": {},
+            "widgets_values": ["zImageTurboGGUF_q80.gguf"],
+        },
+        "4": {
+            "class_type": "CLIPLoaderGGUF",
+            "inputs": {},
+            "widgets_values": ["huihui-qwen3-4b-abliterated-v2-q8_0.gguf", "lumina2"],
+        },
+    }
+
+    active_names = nodes._find_active_names(prompt, "1")
+
+    assert active_names == {
+        "ACTIVE_UNET": "zImageTurboGGUF_q80.gguf",
+        "ACTIVE_CLIP": "huihui-qwen3-4b-abliterated-v2-q8_0.gguf",
+    }
+
+
 def test_resolve_target_path_increments_existing_files(workspace_tmp_path):
     saver = nodes.SaveImageClean()
 

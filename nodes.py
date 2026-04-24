@@ -685,6 +685,61 @@ def _extract_string_inputs(inputs: dict[str, Any], *, exact: tuple[str, ...], pr
     return values
 
 
+def _extract_widget_string_inputs(
+    node: dict[str, Any],
+    *,
+    exact: tuple[str, ...],
+    prefix: tuple[str, ...] = (),
+) -> list[str]:
+    widgets_values = node.get("widgets_values")
+    if not isinstance(widgets_values, list) or not widgets_values:
+        return []
+
+    class_name = _normalize_identifier(str(node.get("class_type", "")))
+    exact_normalized = {_normalize_identifier(item) for item in exact}
+    prefix_normalized = tuple(_normalize_identifier(item) for item in prefix)
+
+    def wants_any(*names: str) -> bool:
+        return any(
+            _normalize_identifier(name) in exact_normalized
+            or any(_normalize_identifier(name).startswith(item) for item in prefix_normalized)
+            for name in names
+        )
+
+    if wants_any("unet_name", "diffusion_model_name", "diffusion_name") and (
+        "unetloader" in class_name or "diffusionmodelloader" in class_name or "loaddiffusionmodel" in class_name
+    ):
+        candidate = widgets_values[0]
+    elif wants_any("clip_name", "text_encoder_name", "text_encoder", "encoder_name") and (
+        "cliploader" in class_name or "textencoderloader" in class_name
+    ):
+        candidate = widgets_values[0]
+    elif wants_any("ckpt_name", "checkpoint_name", "model_name", "name") and (
+        "checkpointloader" in class_name or "ckptloader" in class_name
+    ):
+        candidate = widgets_values[0]
+    else:
+        return []
+
+    if isinstance(candidate, str):
+        cleaned = candidate.strip()
+        return [cleaned] if cleaned else []
+    return []
+
+
+def _extract_string_inputs_from_node(
+    node: dict[str, Any],
+    *,
+    exact: tuple[str, ...],
+    prefix: tuple[str, ...] = (),
+) -> list[str]:
+    inputs = node.get("inputs", {})
+    values = _extract_string_inputs(inputs if isinstance(inputs, dict) else {}, exact=exact, prefix=prefix)
+    if values:
+        return values
+    return _extract_widget_string_inputs(node, exact=exact, prefix=prefix)
+
+
 def _extract_scalar_inputs(inputs: dict[str, Any], *, exact: tuple[str, ...], prefix: tuple[str, ...] = ()) -> list[str]:
     values = []
     exact_normalized = {_normalize_identifier(item) for item in exact}
@@ -950,8 +1005,8 @@ def _find_active_names(prompt: Any, unique_id: Any) -> dict[str, str]:
         checkpoint_priority = _get_checkpoint_loader_priority(class_type, inputs)
 
         if unet_priority is not None or checkpoint_priority is not None:
-            unet_values = _extract_string_inputs(
-                inputs,
+            unet_values = _extract_string_inputs_from_node(
+                node,
                 exact=UNET_EXTRACTION_EXACT_KEYS if unet_priority is not None else CHECKPOINT_DETECTION_EXACT_KEYS,
                 prefix=UNET_EXTRACTION_PREFIX_KEYS if unet_priority is not None else CHECKPOINT_DETECTION_PREFIX_KEYS,
             )
@@ -962,8 +1017,8 @@ def _find_active_names(prompt: Any, unique_id: Any) -> dict[str, str]:
                     best_unet = candidate
 
         if clip_priority is not None or checkpoint_priority is not None:
-            clip_values = _extract_string_inputs(
-                inputs,
+            clip_values = _extract_string_inputs_from_node(
+                node,
                 exact=CLIP_EXTRACTION_EXACT_KEYS if clip_priority is not None else CHECKPOINT_DETECTION_EXACT_KEYS,
                 prefix=CLIP_EXTRACTION_PREFIX_KEYS if clip_priority is not None else CHECKPOINT_DETECTION_PREFIX_KEYS,
             )
