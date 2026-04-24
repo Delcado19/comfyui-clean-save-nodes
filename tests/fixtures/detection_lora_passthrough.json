@@ -1,0 +1,49 @@
+{
+  "1": {
+    "class_type": "SaveImageClean",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ]
+    }
+  },
+  "2": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "5",
+        0
+      ],
+      "clip": [
+        "5",
+        1
+      ]
+    }
+  },
+  "3": {
+    "class_type": "UnetLoaderGGUF",
+    "inputs": {
+      "unet_name": "Flux/flux-2-klein-9b-Q5_K_M.gguf"
+    }
+  },
+  "4": {
+    "class_type": "CLIPLoaderGGUF",
+    "inputs": {
+      "clip_name": "Goekdeniz-Guelmez_Josiefied-Qwen3-8B-abliterated-v1-Q4_K_M.gguf"
+    }
+  },
+  "5": {
+    "class_type": "Power Lora Loader (rgthree)",
+    "inputs": {
+      "model": [
+        "3",
+        0
+      ],
+      "clip": [
+        "4",
+        0
+      ]
+    }
+  }
+}
