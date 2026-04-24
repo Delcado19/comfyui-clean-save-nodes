@@ -62,17 +62,24 @@ The current post-`v0.2.0` work on `main` adds:
 - Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, convenience variables, and basic save/metadata behavior, but not a wide library of real exported workflow fixtures from multiple ComfyUI installations.
 - Frontend preview logic is clearer than before, now warns about unknown placeholders, and can reflect the last real resolved path after execution, but it still relies on sample values before the first workflow run.
 - Compatibility has been expanded for loader naming patterns, but this area is still the most likely place for future edge cases from third-party custom nodes.
+- At least one observed workflow still cross-contaminates detection, with image-model and text-encoder names bleeding into each other.
 
 ## Next Priorities
 
-1. Build a small library of representative real exported workflow fixtures from multiple ComfyUI/custom-node setups.
-2. Consider whether convenience-variable coverage should expand further, for example with `%BATCH_SIZE%` or similar workflow-oriented shortcuts.
-3. Decide whether detection details should also be persisted more explicitly in the UI beyond the last-run helper state.
-4. Add broader manual validation across different custom-node ecosystems and loader families.
-5. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
+1. Tighten loader detection so text-encoder names do not accidentally absorb image-model or UNET names, and image-model names do not accidentally absorb text-encoder names from mixed workflows.
+2. Build a small library of representative real exported workflow fixtures from multiple ComfyUI/custom-node setups.
+3. Add broader manual validation across different custom-node ecosystems and loader families.
+4. Decide whether detection details should also be persisted more explicitly in the UI beyond the last-run helper state.
+5. Consider whether convenience-variable coverage should expand further, for example with `%BATCH_SIZE%` or similar workflow-oriented shortcuts.
+6. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
 
 ## Deferred Ideas
 
+- Optional releaser/publisher cleanup for friendly names:
+  - add a switch that removes releaser or publisher tags from friendly model names for users who want cleaner save paths
+  - keep `Exact` names unchanged
+  - preserve the full detected source names for debugging and traceability
+- Small UI diagnostics such as which loader path produced the active names
 - Expanded collision strategies:
   - millisecond timestamp option
   - hash-based suffix option
@@ -86,7 +93,6 @@ The current post-`v0.2.0` work on `main` adds:
   - `upper`
   - `slug`
 - Optional additional export formats such as JPEG or WebP
-- Small UI diagnostics such as which loader path produced the active names
 
 ## Out Of Scope For Now
 
