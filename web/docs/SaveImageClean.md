@@ -308,3 +308,10 @@ If detection fails:
 
 - `Custom Model Name` is used as fallback for the model side
 - `Custom Text Encoder Name` is used as fallback for the text encoder side
+### Workflow Metadata
+
+`Export Workflow Metadata` controls whether PNG files store prompt and workflow metadata like the
+normal ComfyUI `Save Image` node.
+
+- `On`: saves prompt and workflow metadata into the PNG
+- `Off`: writes a clean PNG without embedded workflow metadata

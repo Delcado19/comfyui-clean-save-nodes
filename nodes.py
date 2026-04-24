@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from collections import deque
 from datetime import datetime
@@ -1170,6 +1171,17 @@ class SaveImageClean:
                         ),
                     },
                 ),
+                "export_workflow_metadata": (
+                    "BOOLEAN",
+                    {
+                        "default": True,
+                        "tooltip": (
+                            "Store prompt and workflow metadata in the PNG, like ComfyUI's normal "
+                            "Save Image node. Turn this off when you want clean PNG files without "
+                            "embedded workflow data."
+                        ),
+                    },
+                ),
             },
             "optional": {
                 "subfolder": (
@@ -1217,18 +1229,27 @@ class SaveImageClean:
     OUTPUT_NODE = True
     CATEGORY = "image/save"
 
-    def _build_metadata(self, prompt: Any = None, extra_pnginfo: Any = None) -> PngImagePlugin.PngInfo:
+    def _build_metadata(
+        self,
+        *,
+        export_workflow_metadata: bool,
+        prompt: Any = None,
+        extra_pnginfo: Any = None,
+    ) -> PngImagePlugin.PngInfo | None:
+        if not export_workflow_metadata:
+            return None
+
         metadata = PngImagePlugin.PngInfo()
 
         if prompt is not None:
-            metadata.add_text("prompt", str(prompt))
+            metadata.add_text("prompt", json.dumps(prompt))
 
         if extra_pnginfo is not None:
             if isinstance(extra_pnginfo, dict):
                 for key, value in extra_pnginfo.items():
-                    metadata.add_text(str(key), str(value))
+                    metadata.add_text(str(key), json.dumps(value))
             else:
-                metadata.add_text("extra_pnginfo", str(extra_pnginfo))
+                metadata.add_text("extra_pnginfo", json.dumps(extra_pnginfo))
 
         return metadata
 
@@ -1464,6 +1485,7 @@ class SaveImageClean:
         model_source: str,
         clip_source: str,
         detection_info: str,
+        export_workflow_metadata: bool,
         subfolder: str = "",
         model_folder: str = "",
         clip_folder: str = "",
@@ -1473,7 +1495,11 @@ class SaveImageClean:
         unique_id: Any = None,
     ):
         output_root = Path(self.output_dir)
-        metadata = self._build_metadata(prompt=prompt, extra_pnginfo=extra_pnginfo)
+        metadata = self._build_metadata(
+            export_workflow_metadata=export_workflow_metadata,
+            prompt=prompt,
+            extra_pnginfo=extra_pnginfo,
+        )
         saved = []
         preview = ""
         detection_lines: list[str] = []

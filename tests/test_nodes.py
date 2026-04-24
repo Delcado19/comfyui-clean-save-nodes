@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 
 import numpy as np
@@ -561,6 +562,7 @@ def test_save_images_includes_detection_summary_in_ui_text(workspace_tmp_path):
         model_source="Friendly",
         clip_source="Exact",
         detection_info="Summary",
+        export_workflow_metadata=True,
         prompt=prompt,
         unique_id="1",
     )
@@ -587,6 +589,7 @@ def test_save_images_verbose_detection_reports_custom_fallback(workspace_tmp_pat
         model_source="Custom",
         clip_source="Friendly",
         detection_info="Verbose",
+        export_workflow_metadata=True,
         model_folder="my-model.safetensors",
         clip_folder="my-clip.gguf",
         prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
@@ -614,6 +617,7 @@ def test_save_images_increments_across_multiple_images_and_creates_files(workspa
         model_source="Friendly",
         clip_source="Friendly",
         detection_info="Off",
+        export_workflow_metadata=True,
         subfolder="batch-tests",
         filename_datetime="sample-output",
         prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
@@ -647,6 +651,7 @@ def test_save_images_preserves_prompt_and_extra_png_metadata(workspace_tmp_path)
         model_source="Friendly",
         clip_source="Friendly",
         detection_info="Off",
+        export_workflow_metadata=True,
         subfolder="metadata-tests",
         filename_datetime="meta-output",
         prompt=prompt,
@@ -656,9 +661,36 @@ def test_save_images_preserves_prompt_and_extra_png_metadata(workspace_tmp_path)
 
     saved_file = workspace_tmp_path / "metadata-tests" / result["ui"]["images"][0]["filename"]
     with Image.open(saved_file) as png:
-        assert png.info["prompt"] == str(prompt)
-        assert png.info["seed"] == str(extra_pnginfo["seed"])
-        assert png.info["sampler"] == extra_pnginfo["sampler"]
+        assert png.info["prompt"] == json.dumps(prompt)
+        assert png.info["seed"] == json.dumps(extra_pnginfo["seed"])
+        assert png.info["sampler"] == json.dumps(extra_pnginfo["sampler"])
+
+
+def test_save_images_can_disable_workflow_metadata_export(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+
+    result = saver.save_images(
+        images=[image],
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=False,
+        subfolder="metadata-tests",
+        filename_datetime="meta-off",
+        prompt={"workflow": "disabled"},
+        extra_pnginfo={"seed": 1234, "workflow": {"nodes": 1}},
+        unique_id="1",
+    )
+
+    saved_file = workspace_tmp_path / "metadata-tests" / result["ui"]["images"][0]["filename"]
+    with Image.open(saved_file) as png:
+        assert "prompt" not in png.info
+        assert "seed" not in png.info
+        assert "workflow" not in png.info
 
 
 def test_save_images_supports_convenience_variables(workspace_tmp_path):
@@ -690,6 +722,7 @@ def test_save_images_supports_convenience_variables(workspace_tmp_path):
         model_source="Friendly",
         clip_source="Friendly",
         detection_info="Off",
+        export_workflow_metadata=True,
         prompt=prompt,
         unique_id="1",
     )

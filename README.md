@@ -12,7 +12,8 @@ It is built for ComfyUI workflows that need readable output folders, predictable
 - readable folder names for models and text encoders
 - filename templates with `%date:...%`, `%strftime:...%`, and `%node.widget%`
 - automatic model and text encoder detection from the active workflow
-- preserved PNG prompt metadata for downstream browsing and archiving
+- preserved PNG workflow metadata for downstream browsing and archiving
+- optional switch to disable embedded workflow metadata export
 - in-node help plus markdown docs for the ComfyUI `Info` tab
 
 ## Included Nodes

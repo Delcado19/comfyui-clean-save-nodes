@@ -261,3 +261,10 @@ Examples:
 %strftime:%Y%m%d_%H%M%S%
 -> 20260422_212205
 ```
+### Workflow Metadata
+
+`Export Workflow Metadata` controls whether PNG files store prompt and workflow metadata like the
+normal ComfyUI `Save Image` node.
+
+- `On`: saves prompt and workflow metadata into the PNG
+- `Off`: writes a clean PNG without embedded workflow metadata
