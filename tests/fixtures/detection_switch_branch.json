@@ -1,0 +1,56 @@
+{
+  "1": {
+    "class_type": "SaveImageClean",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ]
+    }
+  },
+  "2": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "3",
+        0
+      ],
+      "clip": [
+        "8",
+        0
+      ]
+    }
+  },
+  "3": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "4",
+        0
+      ],
+      "on_true": [
+        "5",
+        0
+      ],
+      "switch": false
+    }
+  },
+  "4": {
+    "class_type": "UnetLoaderGGUF",
+    "inputs": {
+      "unet_name": "z_image-Q5_K_S.gguf"
+    }
+  },
+  "5": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "jibMixZIT_v10.safetensors"
+    }
+  },
+  "8": {
+    "class_type": "CLIPLoaderGGUF",
+    "inputs": {
+      "clip_name": "Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf"
+    }
+  }
+}

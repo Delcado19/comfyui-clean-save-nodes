@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import types
 from pathlib import Path
@@ -24,3 +25,13 @@ def workspace_tmp_path():
     tmp_dir = base_dir / uuid4().hex
     tmp_dir.mkdir()
     yield tmp_dir
+
+
+@pytest.fixture
+def load_prompt_fixture():
+    fixtures_root = REPO_ROOT / "tests" / "fixtures"
+
+    def load(name: str):
+        return json.loads((fixtures_root / name).read_text(encoding="utf-8"))
+
+    return load

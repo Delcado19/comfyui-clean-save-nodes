@@ -1,0 +1,38 @@
+{
+  "1": {
+    "class_type": "SaveImageClean",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ]
+    }
+  },
+  "2": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "3",
+        0
+      ],
+      "clip": [
+        "4",
+        0
+      ]
+    }
+  },
+  "3": {
+    "class_type": "LoadDiffusionModelGGUF",
+    "inputs": {
+      "name": "umt5xxl-fp16.gguf",
+      "diffusion_model_name": "qwen-image-edit-2509-Q8_0.gguf"
+    }
+  },
+  "4": {
+    "class_type": "TextEncoderLoader",
+    "inputs": {
+      "model_name": "qwen-image-edit-2509-Q8_0.gguf",
+      "text_encoder_name": "umt5xxl-fp16.gguf"
+    }
+  }
+}

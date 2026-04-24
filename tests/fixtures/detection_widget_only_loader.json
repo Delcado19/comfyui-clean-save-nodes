@@ -1,0 +1,39 @@
+{
+  "1": {
+    "class_type": "SaveImageClean",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ]
+    }
+  },
+  "2": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "3",
+        0
+      ],
+      "clip": [
+        "4",
+        0
+      ]
+    }
+  },
+  "3": {
+    "class_type": "UnetLoaderGGUF",
+    "inputs": {},
+    "widgets_values": [
+      "zImageTurboGGUF_q80.gguf"
+    ]
+  },
+  "4": {
+    "class_type": "CLIPLoaderGGUF",
+    "inputs": {},
+    "widgets_values": [
+      "huihui-qwen3-4b-abliterated-v2-q8_0.gguf",
+      "lumina2"
+    ]
+  }
+}
