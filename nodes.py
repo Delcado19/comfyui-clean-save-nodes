@@ -504,6 +504,20 @@ def _extract_connected_node_id(value: Any) -> str | None:
     return None
 
 
+def _coerce_bool_value(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().casefold()
+        if normalized in {"true", "1", "yes", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off"}:
+            return False
+    return None
+
+
 def _extract_bridge_labels(node: dict[str, Any]) -> list[str]:
     labels = []
     seen = set()
@@ -587,6 +601,26 @@ def _iter_getnode_bridge_parents(prompt: Any, node: dict[str, Any]) -> list[str]
     return parent_ids
 
 
+def _iter_selected_parent_ids(node: dict[str, Any]) -> list[str] | None:
+    inputs = node.get("inputs", {})
+    if not isinstance(inputs, dict):
+        return None
+
+    class_name = _normalize_identifier(str(node.get("class_type", "")))
+    if class_name != "comfyswitchnode":
+        return None
+
+    switch_value = _coerce_bool_value(inputs.get("switch"))
+    if switch_value is None:
+        return None
+
+    selected_input_name = "on_true" if switch_value else "on_false"
+    parent_id = _extract_connected_node_id(inputs.get(selected_input_name))
+    if parent_id is None:
+        return []
+    return [parent_id]
+
+
 def _walk_prompt_upstream(prompt: Any, start_node_id: Any):
     if not isinstance(prompt, dict):
         return
@@ -607,7 +641,17 @@ def _walk_prompt_upstream(prompt: Any, start_node_id: Any):
 
         yield node_id, node, distance
 
-        for input_value in node.get("inputs", {}).values():
+        selected_parent_ids = _iter_selected_parent_ids(node)
+        input_values = (
+            []
+            if selected_parent_ids is not None
+            else node.get("inputs", {}).values() if isinstance(node.get("inputs", {}), dict) else []
+        )
+
+        for parent_id in selected_parent_ids or ():
+            queue.append((parent_id, distance + 1))
+
+        for input_value in input_values:
             parent_id = _extract_connected_node_id(input_value)
             if parent_id is not None:
                 queue.append((parent_id, distance + 1))

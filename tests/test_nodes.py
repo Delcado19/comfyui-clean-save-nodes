@@ -331,6 +331,57 @@ def test_find_active_names_resolves_getnode_setnode_bridges():
     }
 
 
+def test_find_active_names_respects_comfyswitchnode_selected_branch():
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["3", 0],
+                "clip": ["8", 0],
+            },
+        },
+        "3": {
+            "class_type": "ComfySwitchNode",
+            "inputs": {
+                "on_false": ["4", 0],
+                "on_true": ["5", 0],
+                "switch": False,
+            },
+        },
+        "4": {
+            "class_type": "UnetLoaderGGUF",
+            "inputs": {
+                "unet_name": "z_image-Q5_K_S.gguf",
+            },
+        },
+        "5": {
+            "class_type": "UNETLoader",
+            "inputs": {
+                "unet_name": "jibMixZIT_v10.safetensors",
+            },
+        },
+        "8": {
+            "class_type": "CLIPLoaderGGUF",
+            "inputs": {
+                "clip_name": "Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf",
+            },
+        },
+    }
+
+    active_names = nodes._find_active_names(prompt, "1")
+
+    assert active_names == {
+        "ACTIVE_UNET": "z_image-Q5_K_S.gguf",
+        "ACTIVE_CLIP": "Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf",
+    }
+
+
 def test_resolve_target_path_increments_existing_files(workspace_tmp_path):
     saver = nodes.SaveImageClean()
 
