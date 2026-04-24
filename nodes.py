@@ -11,7 +11,6 @@ import folder_paths
 import numpy as np
 from PIL import Image, PngImagePlugin
 
-
 COMMON_EXTENSIONS = (
     ".safetensors",
     ".gguf",

@@ -11,6 +11,7 @@ env/
 
 .pytest_cache/
 .pytest-tmp/
+.tmp/
 pytest-cache-files-*/
 .ruff_cache/
 .mypy_cache/
